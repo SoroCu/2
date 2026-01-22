@@ -28,7 +28,6 @@ table { width:100%; border-collapse:collapse; font-size:14px; }
 th, td { padding:6px; border-bottom:1px solid #ddd; text-align:left; }
 .best { background:#dff5e1; font-weight:bold; }
 .muted { color:#777; text-align:center; margin-top:10px; }
-
 </style>
 </head>
 <body>
@@ -78,6 +77,7 @@ th, td { padding:6px; border-bottom:1px solid #ddd; text-align:left; }
 </div>
 
 <script>
+// --- VARIABLES PRINCIPALES ---
 let products = JSON.parse(localStorage.getItem("products") || "[]");
 let history = JSON.parse(localStorage.getItem("history") || "[]");
 
@@ -88,16 +88,34 @@ const noResults = document.getElementById("noResults");
 const historyDiv = document.getElementById("history");
 const closeBtn = document.getElementById("closePurchaseBtn");
 
-document.getElementById("addBtn").onclick = () => {
-  const name = productName.value.trim();
-  const price = productPrice.value.trim();
-  const supermarket = document.getElementById("supermarket").value;
+const productNameInput = document.getElementById("productName");
+const productPriceInput = document.getElementById("productPrice");
+const supermarketSelect = document.getElementById("supermarket");
+const addBtn = document.getElementById("addBtn");
+
+// --- AÑADIR PRODUCTO ---
+addBtn.onclick = () => {
+  const name = productNameInput.value.trim();
+  const price = productPriceInput.value.trim();
+  const supermarket = supermarketSelect.value;
   if(!name||!price){alert("Introduce nombre y precio"); return;}
   products.push({name,price:parseFloat(price),supermarket,bought:false});
   saveAndRender();
-  productName.value=""; productPrice.value="";
+  productNameInput.value=""; productPriceInput.value="";
 };
 
+// --- CERRAR COMPRA ---
+closeBtn.onclick = () => {
+  const boughtProducts = products.filter(p=>p.bought);
+  if(boughtProducts.length===0){alert("Marca productos comprados para cerrar compra."); return;}
+  const total = boughtProducts.reduce((acc,p)=>acc+p.price,0);
+  const date = new Date().toLocaleString();
+  history.push({date, items:boughtProducts,total});
+  products = products.filter(p=>!p.bought);
+  saveAndRender();
+};
+
+// --- FUNCIONES DE RENDER ---
 function saveAndRender(){
   localStorage.setItem("products",JSON.stringify(products));
   localStorage.setItem("history",JSON.stringify(history));
@@ -158,31 +176,25 @@ function renderSummary(){
   summaryDiv.appendChild(table);
 }
 
-searchInput.addEventListener("input",renderProducts);
-
-closeBtn.onclick = () => {
-  const boughtProducts = products.filter(p=>p.bought);
-  if(boughtProducts.length===0){alert("Marca productos comprados para cerrar compra."); return;}
-  const total = boughtProducts.reduce((acc,p)=>acc+p.price,0);
-  const date = new Date().toLocaleString();
-  history.push({date, items:boughtProducts,total});
-  products = products.filter(p=>!p.bought);
-  saveAndRender();
-};
-
 function renderHistory(){
   historyDiv.innerHTML="";
   if(history.length===0){historyDiv.innerHTML="<div class='muted'>No hay historial</div>"; return;}
   history.slice().reverse().forEach(h=>{
-    const div=document.createElement("div"); div.style.marginBottom="10px"; div.style.padding="8px"; div.style.border="1px solid #ccc"; div.style.borderRadius="8px"; div.style.background="#fff";
+    const div=document.createElement("div");
+    div.style.marginBottom="10px"; div.style.padding="8px"; div.style.border="1px solid #ccc"; div.style.borderRadius="8px"; div.style.background="#fff";
     const header=document.createElement("div"); header.style.fontWeight="bold"; header.textContent=`Compra del ${h.date} (Total: €${h.total.toFixed(2)})`;
     div.appendChild(header);
-    const ul=document.createElement("ul"); h.items.forEach(i=>{const li=document.createElement("li"); li.textContent=`${i.name} – €${i.price.toFixed(2)} – ${i.supermarket}`; ul.appendChild(li);});
+    const ul=document.createElement("ul");
+    h.items.forEach(i=>{const li=document.createElement("li"); li.textContent=`${i.name} – €${i.price.toFixed(2)} – ${i.supermarket}`; ul.appendChild(li);});
     div.appendChild(ul);
     historyDiv.appendChild(div);
   });
 }
 
+// --- BUSQUEDA ---
+searchInput.addEventListener("input",renderProducts);
+
+// --- RENDER INICIAL ---
 render();
 </script>
 </body>
