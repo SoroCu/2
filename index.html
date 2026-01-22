@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Comparador de Supermercados</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #eef1f4;
+      padding: 15px;
+      margin: 0;
+    }
+
+    h1, h2 {
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    .card {
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .add-zone { background: #e8f3ff; }
+    .search-zone { background: #f0f7ef; }
+    .list-zone { background: #fff7ec; }
+    .summary-zone { background: #f3eefc; }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background: #4f8cff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover { opacity: 0.9; }
+
+    /* PRODUCTOS */
+    .product-item {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .product-item span {
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .product-item button {
+      background: #ff6b6b;
+      font-size: 14px;
+      padding: 6px 10px;
+    }
+
+    .bought {
+      opacity: 0.5;
+      text-decoration: line-through;
+    }
+
+    /* RESUMEN */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 6px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    .best {
+      background: #dff5e1;
+      font-weight: bold;
+    }
+
+    .muted {
+      color: #777;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Comparador de Supermercados</h1>
+
+<div class="card add-zone">
+  <h2>Añadir producto</h2>
+  <input id="productName" placeholder="Nombre del producto">
+  <input id="productPrice" type="number" step="0.01" placeholder="Precio (€)">
+  <select id="supermarket">
+    <option>Mercadona</option>
+    <option>Lidl</option>
+    <option>Carrefour</option>
+    <option>Aldi</option>
+    <option>Dia</option>
+    <option>Consum</option>
+    <option>Covirán</option>
+    <option>Eroski</option>
+    <option>Alcampo</option>
+    <option>Spar</option>
+    <option>Super Dumbo</option>
+  </select>
+  <button id="addBtn">Añadir producto</button>
+</div>
+
+<div class="card search-zone">
+  <h2>Búsqueda rápida</h2>
+  <input id="searchInput" placeholder="Buscar producto o supermercado…">
+</div>
+
+<div class="card list-zone">
+  <h2>Lista de la compra</h2>
+  <div id="productList"></div>
+  <div id="noResults" class="muted" style="display:none;">No hay resultados</div>
+</div>
+
+<div class="card summary-zone">
+  <h2>Mejor precio por producto</h2>
+  <div id="summary"></div>
+</div>
+
+<script>
+let products = JSON.parse(localStorage.getItem("products") || "[]");
+
+const productList = document.getElementById("productList");
+const summaryDiv = document.getElementById("summary");
+const searchInput = document.getElementById("searchInput");
+const noResults = document.getElementById("noResults");
+
+document.getElementById("addBtn").onclick = () => {
+  const name = productName.value.trim();
+  const price = productPrice.value.trim();
+  const supermarket = document.getElementById("supermarket").value;
+
+  if (!name || !price) {
+    alert("Introduce nombre y precio");
+    return;
+  }
+
+  products.push({
+    name,
+    price: parseFloat(price),
+    supermarket,
+    bought: false
+  });
+
+  saveAndRender();
+  productName.value = "";
+  productPrice.value = "";
+};
+
+function saveAndRender() {
+  localStorage.setItem("products", JSON.stringify(products));
+  render();
+}
+
+function render() {
+  renderProducts();
+  renderSummary();
+}
+
+function renderProducts() {
+  const query = searchInput.value.toLowerCase();
+  productList.innerHTML = "";
+  let visible = 0;
+
+  products.forEach((p, index) => {
+    const text = (p.name + " " + p.supermarket).toLowerCase();
+    if (!text.includes(query)) return;
+
+    visible++;
+
+    const div = document.createElement("div");
+    div.className = "product-item" + (p.bought ? " bought" : "");
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = p.bought;
+    checkbox.onchange = () => {
+      p.bought = checkbox.checked;
+      saveAndRender();
+    };
+
+    const span = document.createElement("span");
+    span.textContent = `${p.name} – €${p.price.toFixed(2)} – ${p.supermarket}`;
+
+    const del = document.createElement("button");
+    del.textContent = "X";
+    del.onclick = () => {
+      products.splice(index, 1);
+      saveAndRender();
+    };
+
+    div.appendChild(checkbox);
+    div.appendChild(span);
+    div.appendChild(del);
+    productList.appendChild(div);
+  });
+
+  noResults.style.display = visible === 0 ? "block" : "none";
+}
+
+function renderSummary() {
+  summaryDiv.innerHTML = "";
+  const map = {};
+
+  products.forEach(p => {
+    const key = p.name.toLowerCase();
+    if (!map[key] || p.price < map[key].price) {
+      map[key] = p;
+    }
+  });
+
+  if (Object.keys(map).length === 0) {
+    summaryDiv.innerHTML = "<div class='muted'>Sin datos</div>";
+    return;
+  }
+
+  const table = document.createElement("table");
+  const header = document.createElement("tr");
+  ["Producto", "Precio", "Supermercado"].forEach(t => {
+    const th = document.createElement("th");
+    th.textContent = t;
+    header.appendChild(th);
+  });
+  table.appendChild(header);
+
+  Object.values(map).forEach(p => {
+    const tr = document.createElement("tr");
+    tr.className = "best";
+    tr.innerHTML = `
+      <td>${p.name}</td>
+      <td>€${p.price.toFixed(2)}</td>
+      <td>${p.supermarket}</td>
+    `;
+    table.appendChild(tr);
+  });
+
+  summaryDiv.appendChild(table);
+}
+
+searchInput.addEventListener("input", renderProducts);
+render();
+</script>
+
+</body>
+</html>
