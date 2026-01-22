@@ -170,4 +170,20 @@ closeBtn.onclick = () => {
   saveAndRender();
 };
 
-function renderHistory(
+function renderHistory(){
+  historyDiv.innerHTML="";
+  if(history.length===0){historyDiv.innerHTML="<div class='muted'>No hay historial</div>"; return;}
+  history.slice().reverse().forEach(h=>{
+    const div=document.createElement("div"); div.style.marginBottom="10px"; div.style.padding="8px"; div.style.border="1px solid #ccc"; div.style.borderRadius="8px"; div.style.background="#fff";
+    const header=document.createElement("div"); header.style.fontWeight="bold"; header.textContent=`Compra del ${h.date} (Total: €${h.total.toFixed(2)})`;
+    div.appendChild(header);
+    const ul=document.createElement("ul"); h.items.forEach(i=>{const li=document.createElement("li"); li.textContent=`${i.name} – €${i.price.toFixed(2)} – ${i.supermarket}`; ul.appendChild(li);});
+    div.appendChild(ul);
+    historyDiv.appendChild(div);
+  });
+}
+
+render();
+</script>
+</body>
+</html>
